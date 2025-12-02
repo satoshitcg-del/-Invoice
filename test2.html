@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>ใบสรุปยอด / Invoice Calculator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #f5f5f7;
+      color: #222;
+    }
+    h1 {
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      background: #111827;
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+      box-shadow: none;
+    }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    thead {
+      background: #111827;
+      color: #f9fafb;
+    }
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+      text-align: right;
+    }
+    th:first-child, td:first-child {
+      text-align: left;
+    }
+    th:nth-child(2), td:nth-child(2) {
+      text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 12px;
+      font-family: inherit;
+      resize: vertical;
+    }
+    input[type="text"] {
+      text-align: right;
+    }
+    input.code, input.group, input.item {
+      text-align: left;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #111827;
+      box-shadow: 0 0 0 1px #11182720;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+    .text-muted {
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .card {
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 12px 14px;
+      background: #f9fafb;
+    }
+    .card h2 {
+      font-size: 15px;
+      margin: 0 0 8px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 2px 0;
+    }
+    .summary-row.total {
+      margin-top: 6px;
+      border-top: 1px dashed #d1d5db;
+      padding-top: 6px;
+      font-weight: 600;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+    }
+    .remove-btn:hover {
+      color: #ef4444;
+    }
+
+    .clickable-cell {
+      cursor: pointer;
+      text-decoration: underline dotted;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 18px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .modal-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .modal-close {
+      border: none;
+      background: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: #6b7280;
+    }
+    .modal-close:hover {
+      color: #111827;
+    }
+    .modal-body {
+      font-size: 13px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .discount-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .discount-line.total {
+      border-top: 1px dashed #e5e7eb;
+      margin-top: 4px;
+      padding-top: 4px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 12px; }
+      .summary {
+        grid-template-columns: 1fr;
+      }
+      th, td {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>สรุปยอด / Invoice</h1>
+    <div class="subtitle">
+      - คำนวณด้วยเลขทศนิยมแบบตรง ๆ ไม่ปัดเศษ<br>
+      - ส่วนลดหลายอันคิดแบบต่อเนื่อง: 100 → ลด 1% เหลือ 99 → ลดตัวถัดไปจาก 99<br>
+      - รองรับโครงสร้างลำดับชั้น: 1, 1.1, 1.2 … สินค้าย่อยลดก่อน แล้วค่อยลดระดับสินค้าแม่<br>
+      - ส่วนลดรองรับยอดติดลบ (เช่น -100 ลด 1% → ส่วนลด 1 บาท, ยอดใหม่ -99)<br>
+      - แต่ละสินค้าแสดงราคาได้ทั้ง THB และ USDT ตาม currency_name
+    </div>
+
+    <div class="controls">
+      <button id="addRowBtn">+ เพิ่มรายการสินค้า</button>
+      <button id="clearAllBtn" class="secondary">ล้างข้อมูลทั้งหมด</button>
+    </div>
+
+    <!-- นำเข้าจาก JSON -->
+    <div class="card" style="margin-bottom: 14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <strong>นำเข้ารายการจาก JSON</strong>
+        <button id="loadJsonBtn" class="secondary" style="padding:4px 10px;font-size:12px;">โหลดจาก JSON</button>
+      </div>
+      <div class="text-muted" style="margin-bottom:4px;">
+        วาง JSON ที่ได้จาก API แล้วกด "โหลดจาก JSON"<br>
+        - แถว <code>type = "DISCOUNT"</code> จะไม่แสดง แต่จะถูกใช้สร้างสูตรส่วนลดให้แถวแม่อัตโนมัติ<br>
+        - ใช้เรทจาก <code>data.currency_rate.currencies</code> แปลง THB ↔ USDT
+      </div>
+      <textarea id="jsonInput" rows="6" placeholder='วาง JSON ที่นี่...'></textarea>
+    </div>
+
+    <!-- การ์ดแสดงเรทจาก JSON -->
+    <div class="card" id="rateCard" style="margin-bottom: 14px; display:none;">
+      <strong>เรทแลกเปลี่ยนจาก JSON</strong>
+      <div class="text-muted" id="rateDateText" style="margin-top:4px;margin-bottom:4px;"></div>
+      <div id="rateLines"></div>
+    </div>
+
+    <table id="itemTable">
+      <thead>
+        <tr>
+          <th style="width:70px;">เลขที่</th>
+          <th style="width:120px;">กลุ่ม</th>
+          <th style="width:200px;">รายการ</th>
+          <th style="width:60px;">จำนวน</th>
+          <th style="width:100px;">ราคา THB</th>
+          <th style="width:100px;">ราคา USDT</th>
+          <th style="width:160px;">ส่วนลด (เช่น 10% 5% 500)</th>
+          <th style="width:110px;">ยอดก่อนส่วนลด</th>
+          <th style="width:110px;">ส่วนลดรวม</th>
+          <th style="width:110px;">ส่วนลด (USDT)</th>
+          <th style="width:110px;">ยอดสุทธิ</th>
+          <th style="width:110px;">สุทธิ (USDT)</th>
+          <th style="width:36px;"></th>
+        </tr>
+      </thead>
+      <tbody id="itemBody"></tbody>
+    </table>
+
+    <div class="summary">
+      <div class="card">
+        <h2>ยอดรวมตามกลุ่ม</h2>
+        <div class="text-muted">ใช้ชื่อกลุ่มในคอลัมน์กลุ่ม เช่น “Sportbook”, “Autoplay” เป็นต้น</div>
+        <div id="groupSummary"></div>
+      </div>
+
+      <div class="card">
+        <h2>สรุปยอดรวมทั้งหมด</h2>
+        <div class="summary-row">
+          <span>ยอดก่อนส่วนลด (รวมทุกกลุ่ม)</span>
+          <span id="totalBefore">0</span>
+        </div>
+        <div class="summary-row">
+          <span>ส่วนลดรวม</span>
+          <span id="totalDiscount">0</span>
+        </div>
+        <div class="summary-row">
+          <span>ส่วนลดรวม (USDT)</span>
+          <span id="totalDiscountUsdt">0</span>
+        </div>
+        <div class="summary-row total">
+          <span>ยอดสุทธิรวม</span>
+          <span id="grandTotal">0</span>
+        </div>
+        <div class="summary-row">
+          <span>ยอดสุทธิรวม (USDT)</span>
+          <span id="grandTotalUsdt">0</span>
+        </div>
+        <div class="summary-row">
+          <span>ยอดจาก JSON (USDT)</span>
+          <span id="jsonTotalUsdt">-</span>
+        </div>
+        <div class="summary-row">
+          <span>ผลเทียบยอด</span>
+          <span id="compareResult">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal แสดงรายละเอียดส่วนลด -->
+  <div id="discountModalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">รายละเอียดส่วนลด</div>
+        <button class="modal-close" id="discountModalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="discountModalContent"></div>
+    </div>
+  </div>
+
+  <script>
+    const SCALE = 8n;
+    const TEN_POW = 10n ** SCALE;
+
+    function parseDecimal(str) {
+      if (typeof str !== "string") str = String(str ?? "");
+      str = str.trim();
+      if (!str) return 0n;
+      let neg = false;
+      if (str[0] === "-") {
+        neg = true;
+        str = str.slice(1);
+      }
+      let [intPart, fracPart = ""] = str.split(".");
+      intPart = intPart.replace(/[^0-9]/g, "") || "0";
+      fracPart = fracPart.replace(/[^0-9]/g, "");
+      if (fracPart.length > Number(SCALE)) {
+        fracPart = fracPart.slice(0, Number(SCALE));
+      }
+      while (fracPart.length < Number(SCALE)) {
+        fracPart += "0";
+      }
+      let big = BigInt(intPart + fracPart);
+      return neg ? -big : big;
+    }
+
+    function decimalToString(x, maxDecimals = 8) {
+      x = BigInt(x);
+      const neg = x < 0n;
+      if (neg) x = -x;
+      let s = x.toString().padStart(Number(SCALE) + 1, "0");
+      let intPart = s.slice(0, -Number(SCALE));
+      let fracPart = s.slice(-Number(SCALE));
+      if (maxDecimals < Number(SCALE)) {
+        fracPart = fracPart.slice(0, maxDecimals);
+      }
+      fracPart = fracPart.replace(/0+$/, "");
+      let res = fracPart ? intPart + "." + fracPart : intPart;
+      return neg ? "-" + res : res;
+    }
+
+    function addDec(a, b) { return a + b; }
+    function subDec(a, b) { return a - b; }
+    function mulDec(a, b) { return (a * b) / TEN_POW; }
+    function divDec(a, b) {
+      if (b === 0n) return 0n;
+      return (a * TEN_POW) / b;
+    }
+
+    const currencyRateMap = {};       // fiat_name -> BigInt usdt_rate
+    let expectedTotalUsdtJson = null; // ยอดจาก JSON (USDT)
+    const jsonDiscountMap = {};       // parentCode -> [{ token, jsonAmount, jsonCurrency, itemText }]
+    const DIFF_THRESHOLD = parseDecimal("0.01"); // ต่างเกิน 0.001 ให้แจ้งเตือน
+
+    function setCurrencyRates(obj) {
+      for (const key in currencyRateMap) delete currencyRateMap[key];
+      const cr = obj && obj.data && obj.data.currency_rate;
+
+      const rateCard = document.getElementById("rateCard");
+      const rateDateText = document.getElementById("rateDateText");
+      const rateLines = document.getElementById("rateLines");
+
+      if (rateCard && rateLines && rateDateText) {
+        rateLines.innerHTML = "";
+        if (!cr || !Array.isArray(cr.currencies) || cr.currencies.length === 0) {
+          rateCard.style.display = "none";
+        } else {
+          rateCard.style.display = "block";
+          rateDateText.textContent = "วันที่เรท: " + (cr.rate_date || "-");
+        }
+      }
+
+      if (!cr || !Array.isArray(cr.currencies)) return;
+
+      cr.currencies.forEach(cur => {
+        if (!cur || !cur.fiat_name) return;
+        const name = String(cur.fiat_name).trim();
+        const rateStr = String(cur.usdt_rate ?? "");
+        const rateDec = parseDecimal(rateStr);
+        if (rateDec !== 0n) {
+          currencyRateMap[name] = rateDec;
+        }
+
+        if (rateLines) {
+          const row = document.createElement("div");
+          row.className = "summary-row";
+          let text;
+          if (name === "USDT") {
+            text = "1 USDT = 1 USDT";
+          } else {
+            text = "1 USDT = " + rateStr + " " + name;
+          }
+          row.innerHTML = `<span>${name}</span><span>${text}</span>`;
+          rateLines.appendChild(row);
+        }
+      });
+    }
+
+    // THB → USDT
+    function convertThbToUsdt(amountThb) {
+      const rateThb = currencyRateMap["THB"];
+      if (!rateThb || rateThb === 0n) return 0n;
+      return divDec(amountThb, rateThb);
+    }
+
+    // USDT → THB
+    function convertUsdtToThb(amountUsdt) {
+      const rateThb = currencyRateMap["THB"];
+      if (!rateThb || rateThb === 0n) return 0n;
+      return mulDec(amountUsdt, rateThb);
+    }
+
+    // amount ในสกุล currencyName → USDT
+    function convertToUsdt(amountDec, currencyName) {
+      if (currencyName === "USDT") return amountDec;
+      if (currencyName === "THB") return convertThbToUsdt(amountDec);
+      const rate = currencyRateMap[currencyName];
+      if (!rate || rate === 0n) return 0n;
+      return divDec(amountDec, rate);
+    }
+
+    // ส่วนลดหลายอันแบบต่อเนื่อง + รองรับยอดติดลบ
+    function applyDiscounts(baseAmount, discountStr) {
+      let current = baseAmount;
+      let totalDiscount = 0n;
+      const breakdown = [];
+
+      if (!discountStr || !discountStr.trim()) {
+        return { current, totalDiscount, breakdown };
+      }
+
+      const tokens = discountStr.split(/[,+\s]+/).filter(Boolean);
+      const hundred = parseDecimal("100");
+
+      for (const rawToken of tokens) {
+        let label = rawToken.trim();
+        if (!label) continue;
+
+        let token = label;
+        const isPercent = token.includes("%");
+        token = token.replace("%", "");
+
+        let value = parseDecimal(token);
+        if (value === 0n) continue;
+        if (value < 0n) value = -value;
+
+        const sign = current >= 0n ? 1n : -1n;
+        const absCurrent = current >= 0n ? current : -current;
+
+        let discMag = 0n;
+        if (isPercent) {
+          discMag = divDec(mulDec(absCurrent, value), hundred);
+        } else {
+          discMag = value;
+        }
+
+        if (sign >= 0n) {
+          current = subDec(current, discMag);
+        } else {
+          current = addDec(current, discMag);
+        }
+
+        totalDiscount = addDec(totalDiscount, discMag);
+        breakdown.push({ label, amount: discMag });
+      }
+
+      return { current, totalDiscount, breakdown };
+    }
+
+    const rowDiscountDetails = new WeakMap();
+    const itemBody = document.getElementById("itemBody");
+
+    function createRow(initial = {}) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input type="text" class="code" placeholder="1, 1.1" /></td>
+        <td><input type="text" class="group" placeholder="กลุ่ม เช่น Sportbook" /></td>
+        <td><input type="text" class="item" placeholder="ชื่อรายการ" /></td>
+        <td><input type="text" class="qty" value="1" /></td>
+        <td><input type="text" class="priceThb" placeholder="THB" /></td>
+        <td><input type="text" class="priceUsdt" placeholder="USDT" /></td>
+        <td><input type="text" class="discounts" placeholder="เช่น 10% 5% 500" /></td>
+        <td class="text-right lineBefore">0</td>
+        <td class="text-right lineDiscount clickable-cell" title="คลิกเพื่อดูรายละเอียดส่วนลด">0</td>
+        <td class="text-right lineDiscountUsdt">0</td>
+        <td class="text-right lineNet">0</td>
+        <td class="text-right lineNetUsdt">0</td>
+        <td class="text-right">
+          <button class="remove-btn" title="ลบแถวนี้">&times;</button>
+        </td>
+      `;
+      itemBody.appendChild(tr);
+
+      tr.dataset.currency = initial.currency || "THB";
+
+      if (initial.code != null) tr.querySelector(".code").value = initial.code;
+      if (initial.group != null) tr.querySelector(".group").value = initial.group;
+      if (initial.item != null) tr.querySelector(".item").value = initial.item;
+      if (initial.qty != null) tr.querySelector(".qty").value = initial.qty;
+      if (initial.priceThb != null) tr.querySelector(".priceThb").value = initial.priceThb;
+      if (initial.priceUsdt != null) tr.querySelector(".priceUsdt").value = initial.priceUsdt;
+      if (initial.discounts != null) tr.querySelector(".discounts").value = initial.discounts;
+
+      tr.querySelectorAll("input").forEach(inp => {
+        inp.addEventListener("input", () => {
+          recalcRow(tr);
+          recalcAll();
+        });
+      });
+
+      tr.querySelector(".remove-btn").addEventListener("click", () => {
+        tr.remove();
+        recalcAll();
+      });
+
+      tr.querySelector(".lineDiscount").addEventListener("click", () => {
+        showDiscountDetails(tr);
+      });
+
+      recalcRow(tr);
+      recalcAll();
+    }
+
+    function recalcRow(tr) {
+      const qty = parseDecimal(tr.querySelector(".qty").value);
+      const discountsStr = tr.querySelector(".discounts").value;
+      const currency = tr.dataset.currency || "THB";
+
+      const priceThbInput = tr.querySelector(".priceThb");
+      const priceUsdtInput = tr.querySelector(".priceUsdt");
+
+      let priceThb = parseDecimal(priceThbInput.value);
+      let priceUsdt = parseDecimal(priceUsdtInput.value);
+
+      let unitPriceBase = 0n;
+
+      if (currency === "THB") {
+        unitPriceBase = priceThb;
+        if (priceThb !== 0n && currencyRateMap["THB"]) {
+          priceUsdt = convertThbToUsdt(priceThb);
+          priceUsdtInput.value = decimalToString(priceUsdt);
+        }
+      } else if (currency === "USDT") {
+        unitPriceBase = priceUsdt;
+        if (priceUsdt !== 0n && currencyRateMap["THB"]) {
+          priceThb = convertUsdtToThb(priceUsdt);
+          priceThbInput.value = decimalToString(priceThb);
+        }
+      } else {
+        unitPriceBase = priceThb || priceUsdt;
+      }
+
+      const lineBefore = mulDec(qty, unitPriceBase);
+      const { current: lineNet, totalDiscount, breakdown } = applyDiscounts(lineBefore, discountsStr);
+
+      const lineNetUsdt = convertToUsdt(lineNet, currency);
+      const lineDiscountUsdt = convertToUsdt(totalDiscount, currency);
+
+      tr.querySelector(".lineBefore").textContent = decimalToString(lineBefore);
+      tr.querySelector(".lineDiscount").textContent = decimalToString(totalDiscount);
+      tr.querySelector(".lineDiscountUsdt").textContent = decimalToString(lineDiscountUsdt);
+      tr.querySelector(".lineNet").textContent = decimalToString(lineNet);
+      tr.querySelector(".lineNetUsdt").textContent = decimalToString(lineNetUsdt);
+
+      rowDiscountDetails.set(tr, {
+        base: lineBefore,
+        totalDiscount,
+        totalDiscountUsdt: lineDiscountUsdt,
+        net: lineNet,
+        netUsdt: lineNetUsdt,
+        currency,
+        breakdown
+      });
+    }
+
+    function recalcAll() {
+      const rows = Array.from(itemBody.querySelectorAll("tr"));
+      const rowInfos = [];
+
+      rows.forEach(tr => {
+        const code = (tr.querySelector(".code")?.value || "").trim();
+        const groupName = (tr.querySelector(".group").value || "").trim() || "(ไม่มีกลุ่ม)";
+        const info = rowDiscountDetails.get(tr) || {
+          base: 0n,
+          totalDiscount: 0n,
+          totalDiscountUsdt: 0n,
+          net: 0n,
+          netUsdt: 0n,
+          currency: tr.dataset.currency || "THB",
+          breakdown: []
+        };
+        rowInfos.push({
+          tr,
+          code,
+          groupName,
+          base: info.base,
+          totalDiscount: info.totalDiscount,
+          totalDiscountUsdt: info.totalDiscountUsdt || 0n,
+          net: info.net,
+          netUsdt: info.netUsdt || 0n,
+          currency: info.currency,
+          breakdown: info.breakdown,
+          excluded: false
+        });
+      });
+
+      // children map เช่น "1" => [1.1, 1.2, ...]
+      const childrenMap = {};
+      rowInfos.forEach(ri => {
+        if (!ri.code) return;
+        const parts = ri.code.split(".");
+        if (parts.length < 2) return;
+        const parentCode = parts[0];
+        if (!childrenMap[parentCode]) childrenMap[parentCode] = [];
+        childrenMap[parentCode].push(ri);
+      });
+
+      // คำนวณแถวแม่จากลูก โดยสนใจ currency ของแม่
+      rowInfos.forEach(ri => {
+        if (!ri.code || ri.code.includes(".")) return; // code ไม่มีจุด เช่น "1", "2"
+        const parentCode = ri.code;
+        const children = childrenMap[parentCode];
+        if (!children || !children.length) return;
+
+        const currency = ri.currency || "";
+        let baseForParent = 0n;
+
+        if (currency === "USDT") {
+          children.forEach(ch => {
+            const childUsdt = ch.netUsdt || convertToUsdt(ch.net, ch.currency || "");
+            baseForParent = addDec(baseForParent, childUsdt);
+            ch.excluded = true;
+          });
+        } else {
+          children.forEach(ch => {
+            baseForParent = addDec(baseForParent, ch.net);
+            ch.excluded = true;
+          });
+        }
+
+        const discountsStr = ri.tr.querySelector(".discounts").value;
+        const { current: parentNet, totalDiscount: parentDisc, breakdown } =
+          applyDiscounts(baseForParent, discountsStr);
+
+        const parentDiscUsdt = convertToUsdt(parentDisc, currency || "");
+        const parentNetUsdt = convertToUsdt(parentNet, currency || "");
+
+        ri.tr.querySelector(".lineBefore").textContent = decimalToString(baseForParent);
+        ri.tr.querySelector(".lineDiscount").textContent = decimalToString(parentDisc);
+        ri.tr.querySelector(".lineDiscountUsdt").textContent = decimalToString(parentDiscUsdt);
+        ri.tr.querySelector(".lineNet").textContent = decimalToString(parentNet);
+        ri.tr.querySelector(".lineNetUsdt").textContent = decimalToString(parentNetUsdt);
+
+        ri.base = baseForParent;
+        ri.totalDiscount = parentDisc;
+        ri.totalDiscountUsdt = parentDiscUsdt;
+        ri.net = parentNet;
+        ri.netUsdt = parentNetUsdt;
+        ri.breakdown = breakdown;
+
+        rowDiscountDetails.set(ri.tr, {
+          base: ri.base,
+          totalDiscount: ri.totalDiscount,
+          totalDiscountUsdt: ri.totalDiscountUsdt,
+          net: ri.net,
+          netUsdt: ri.netUsdt,
+          currency,
+          breakdown
+        });
+      });
+
+      // รวมยอดจากแถวที่ไม่ถูก excluded
+      let totalBefore = 0n;
+      let totalNet = 0n;
+      let totalNetUsdt = 0n;
+      let totalDiscountUsdt = 0n;
+      const groupMap = new Map();
+
+      rowInfos.forEach(ri => {
+        if (ri.excluded) return;
+        totalBefore = addDec(totalBefore, ri.base);
+        totalNet = addDec(totalNet, ri.net);
+        totalNetUsdt = addDec(totalNetUsdt, ri.netUsdt || 0n);
+        totalDiscountUsdt = addDec(totalDiscountUsdt, ri.totalDiscountUsdt || 0n);
+
+        const prev = groupMap.get(ri.groupName) || 0n;
+        groupMap.set(ri.groupName, addDec(prev, ri.net));
+      });
+
+      const totalDiscount = subDec(totalBefore, totalNet);
+
+      document.getElementById("totalBefore").textContent = decimalToString(totalBefore);
+      document.getElementById("totalDiscount").textContent = decimalToString(totalDiscount);
+      document.getElementById("grandTotal").textContent = decimalToString(totalNet);
+      document.getElementById("totalDiscountUsdt").textContent = decimalToString(totalDiscountUsdt);
+      document.getElementById("grandTotalUsdt").textContent = decimalToString(totalNetUsdt);
+
+      const groupSummaryDiv = document.getElementById("groupSummary");
+      groupSummaryDiv.innerHTML = "";
+      groupMap.forEach((val, name) => {
+        const row = document.createElement("div");
+        row.className = "summary-row";
+        row.innerHTML = `<span>${name}</span><span>${decimalToString(val)}</span>`;
+        groupSummaryDiv.appendChild(row);
+      });
+      if (groupMap.size === 0) {
+        groupSummaryDiv.innerHTML = `<div class="text-muted">ยังไม่มีกลุ่มหรือรายการ</div>`;
+      }
+
+      // --- เทียบยอดกับ JSON ---
+      const jsonTotalEl = document.getElementById("jsonTotalUsdt");
+      const compareEl = document.getElementById("compareResult");
+      if (jsonTotalEl && compareEl) {
+        if (expectedTotalUsdtJson == null) {
+          jsonTotalEl.textContent = "-";
+          compareEl.textContent = "ไม่มีข้อมูลจาก JSON";
+        } else {
+          jsonTotalEl.textContent = decimalToString(expectedTotalUsdtJson);
+          const diff = subDec(totalNetUsdt, expectedTotalUsdtJson);
+          if (diff === 0n) {
+            compareEl.textContent = "ตรงกับยอดจาก JSON";
+          } else {
+            compareEl.textContent = "ต่างจาก JSON " + decimalToString(diff);
+          }
+        }
+      }
+    }
+
+    const modalBackdrop = document.getElementById("discountModalBackdrop");
+    const modalCloseBtn = document.getElementById("discountModalClose");
+    const modalContent = document.getElementById("discountModalContent");
+
+    function showDiscountDetails(tr) {
+      const info = rowDiscountDetails.get(tr);
+      modalContent.innerHTML = "";
+
+      const code = (tr.querySelector(".code")?.value || "").trim();
+      const jsonList = jsonDiscountMap[code] || [];
+
+      if (!info || !info.breakdown || info.breakdown.length === 0) {
+        modalContent.innerHTML = `<div class="text-muted">ไม่มีส่วนลดสำหรับรายการนี้</div>`;
+        modalBackdrop.style.display = "flex";
+        return;
+      }
+
+      const baseLine = document.createElement("div");
+      baseLine.className = "discount-line";
+      baseLine.innerHTML = `<span>ยอดก่อนส่วนลด</span><span>${decimalToString(info.base)}</span>`;
+      modalContent.appendChild(baseLine);
+
+      let smallDiffCount = 0; // |diff| <= 0.001
+      let bigDiffCount = 0;   // |diff| > 0.001
+
+      info.breakdown.forEach((b, idx) => {
+        const line = document.createElement("div");
+        line.className = "discount-line";
+        line.style.flexDirection = "column";
+        line.style.alignItems = "flex-start";
+
+        let usdtText = "";
+        if (info.currency) {
+          const discUsdt = convertToUsdt(b.amount, info.currency);
+          usdtText = ` (${decimalToString(discUsdt)} USDT)`;
+        }
+
+        const topRow = document.createElement("div");
+        topRow.style.display = "flex";
+        topRow.style.justifyContent = "space-between";
+        topRow.style.width = "100%";
+        topRow.innerHTML = `<span>ลด ${b.label}</span><span>${decimalToString(b.amount)}${usdtText}</span>`;
+        line.appendChild(topRow);
+
+        const jsonRow = jsonList[idx];
+        if (jsonRow) {
+          const diff = subDec(b.amount, jsonRow.jsonAmount);
+          const absDiff = diff >= 0n ? diff : -diff;
+
+          if (absDiff > DIFF_THRESHOLD) bigDiffCount++;
+          else smallDiffCount++;
+
+          const jsonRowEl = document.createElement("div");
+          jsonRowEl.className = "text-muted";
+          jsonRowEl.style.width = "100%";
+          jsonRowEl.style.display = "flex";
+          jsonRowEl.style.justifyContent = "space-between";
+
+          const currencyLabel = jsonRow.jsonCurrency || info.currency || "";
+          const warn = absDiff > DIFF_THRESHOLD ? " ⚠ ต่างเกิน 0.001" : "";
+          jsonRowEl.innerHTML =
+            `<span>จาก JSON (${jsonRow.itemText || ""})</span>` +
+            `<span>${decimalToString(jsonRow.jsonAmount)} ${currencyLabel} | ต่าง: ${decimalToString(diff)}${warn}</span>`;
+          line.appendChild(jsonRowEl);
+        }
+
+        modalContent.appendChild(line);
+      });
+
+      const totalLine = document.createElement("div");
+      totalLine.className = "discount-line total";
+      totalLine.innerHTML = `<span>ส่วนลดรวม</span><span>${decimalToString(info.totalDiscount)}</span>`;
+      modalContent.appendChild(totalLine);
+
+      if (info.currency) {
+        const totalDiscUsdtLine = document.createElement("div");
+        totalDiscUsdtLine.className = "discount-line";
+        totalDiscUsdtLine.innerHTML = `<span>ส่วนลดรวม (USDT)</span><span>${decimalToString(info.totalDiscountUsdt)}</span>`;
+        modalContent.appendChild(totalDiscUsdtLine);
+      }
+
+      const netLine = document.createElement("div");
+      netLine.className = "discount-line";
+      netLine.innerHTML = `<span>ยอดสุทธิหลังลด</span><span>${decimalToString(info.net)}</span>`;
+      modalContent.appendChild(netLine);
+
+      if (info.currency) {
+        const netUsdtLine = document.createElement("div");
+        netUsdtLine.className = "discount-line";
+        netUsdtLine.innerHTML = `<span>ยอดสุทธิ (USDT)</span><span>${decimalToString(info.netUsdt)}</span>`;
+        modalContent.appendChild(netUsdtLine);
+      }
+
+      if (jsonList.length > 0) {
+        const summaryLine = document.createElement("div");
+        summaryLine.className = "discount-line";
+        summaryLine.style.borderTop = "1px dashed #e5e7eb";
+        summaryLine.style.marginTop = "4px";
+        summaryLine.style.paddingTop = "4px";
+        summaryLine.innerHTML =
+          `<span>สรุปเทียบกับ JSON</span>` +
+          `<span>ต่างไม่เกิน 0.001: ${smallDiffCount} รายการ, ต่างเกิน 0.001: ${bigDiffCount} รายการ</span>`;
+        modalContent.appendChild(summaryLine);
+      }
+
+      modalBackdrop.style.display = "flex";
+    }
+
+    function hideDiscountModal() {
+      modalBackdrop.style.display = "none";
+    }
+
+    modalCloseBtn.addEventListener("click", hideDiscountModal);
+    modalBackdrop.addEventListener("click", (e) => {
+      if (e.target === modalBackdrop) hideDiscountModal();
+    });
+
+    // โหลด JSON + ดึง DISCOUNT ไปทำเป็นสูตรส่วนลดให้แถวแม่ + ตั้ง expectedTotalUsdtJson + เก็บยอด DISCOUNT จาก JSON ไว้เทียบ
+    function loadFromJson() {
+      const text = document.getElementById("jsonInput").value;
+      if (!text.trim()) {
+        alert("กรุณาวาง JSON ก่อน");
+        return;
+      }
+      let obj;
+      try {
+        obj = JSON.parse(text);
+      } catch (e) {
+        alert("รูปแบบ JSON ไม่ถูกต้อง");
+        return;
+      }
+
+      setCurrencyRates(obj);
+
+      // ดึงยอด USDT จาก footer เพื่อใช้เทียบ
+      expectedTotalUsdtJson = null;
+      const footer = obj && obj.data && obj.data.footer;
+      if (footer) {
+        if (Array.isArray(footer.fiat_total_summary)) {
+          const usdtRow = footer.fiat_total_summary.find(r => r.fiat_name === "USDT");
+          if (usdtRow && usdtRow.total_fiat != null) {
+            expectedTotalUsdtJson = parseDecimal(String(usdtRow.total_fiat));
+          }
+        } else if (footer.total_usdt != null) {
+          expectedTotalUsdtJson = parseDecimal(String(footer.total_usdt));
+        }
+      }
+
+      const lists = (obj && obj.data && Array.isArray(obj.data.lists))
+        ? obj.data.lists
+        : (Array.isArray(obj.lists) ? obj.lists : []);
+      if (!lists.length) {
+        alert("ไม่พบ data.lists ใน JSON");
+        return;
+      }
+
+      // ล้างข้อมูลเปรียบเทียบส่วนลดเดิม
+      for (const k in jsonDiscountMap) delete jsonDiscountMap[k];
+
+      // MAIN no -> กลุ่ม
+      const mainMap = new Map();
+      lists.forEach(row => {
+        if (row.itemType === "MAIN" && row.no) {
+          const mainNo = String(row.no).split(".")[0];
+          mainMap.set(mainNo, (row.item || "").trim());
+        }
+      });
+
+      // DISCOUNT rows -> map parentNo -> tokens + เก็บ amount ไว้ใน jsonDiscountMap
+      const discountMap = {};
+      lists.forEach(row => {
+        if (row.type !== "DISCOUNT" || !row.no) return;
+
+        const noStr = String(row.no).trim();
+        const lastDot = noStr.lastIndexOf(".");
+        if (lastDot === -1) return;
+        const parentNo = noStr.slice(0, lastDot); // 1.1.1 -> 1.1, 2.2 -> 2
+
+        const itemText = String(row.item || "");
+        const lower = itemText.toLowerCase();
+
+        let token = null;
+
+        const percentMatch = lower.match(/(\d+(?:\.\d+)?)\s*%/);
+        if (percentMatch) {
+          token = percentMatch[1] + "%";
+        } else {
+          const reduceMatch = lower.match(/ลด\s*([0-9]+(?:\.[0-9]+)?)/);
+          if (reduceMatch) {
+            token = reduceMatch[1];
+          } else {
+            const unitMatch = lower.match(/([0-9]+(?:\.[0-9]+)?)\s*(บาท|usdt)/);
+            if (unitMatch) {
+              token = unitMatch[1];
+            }
+          }
+        }
+
+        if (!token) return;
+
+        if (!discountMap[parentNo]) {
+          discountMap[parentNo] = [];
+        }
+        discountMap[parentNo].push(token);
+
+        if (!jsonDiscountMap[parentNo]) {
+          jsonDiscountMap[parentNo] = [];
+        }
+        jsonDiscountMap[parentNo].push({
+          token,
+          jsonAmount: parseDecimal(String(row.amount ?? row.unitPrice ?? 0)),
+          jsonCurrency: row.currency_name || null,
+          itemText
+        });
+      });
+
+      // เคลียร์ตาราง แล้วสร้างแถว (ไม่สร้าง DISCOUNT)
+      itemBody.innerHTML = "";
+
+      lists.forEach(row => {
+        if (!row.no) return;
+        if (row.type === "DISCOUNT") return; // ไม่สร้างแถวส่วนลด
+
+        const no = String(row.no).trim();
+        const mainNo = no.split(".")[0] || "";
+        const groupName = mainMap.get(mainNo) || (row.item || "").trim() || "(ไม่มีกลุ่ม)";
+        const qty = row.qty != null ? String(row.qty) : "1";
+        const unitPrice = row.unitPrice != null ? String(row.unitPrice) : "0";
+
+        const extra = [];
+        if (row.currency_name) extra.push(row.currency_name);
+        if (row.type) extra.push(row.type);
+        const suffix = extra.length ? ` [${extra.join(" / ")}]` : "";
+        const itemName = `${row.item || ""}${suffix}`;
+
+        const parentDiscountTokens = discountMap[no] || [];
+        const discountsStr = parentDiscountTokens.join(" ");
+
+        const currency = row.currency_name || "THB";
+        const init = {
+          code: no,
+          group: groupName,
+          item: itemName,
+          qty: qty,
+          discounts: discountsStr,
+          currency
+        };
+
+        if (currency === "THB") {
+          init.priceThb = unitPrice;
+        } else if (currency === "USDT") {
+          init.priceUsdt = unitPrice;
+        } else {
+          init.priceThb = unitPrice;
+        }
+
+        createRow(init);
+      });
+
+      recalcAll();
+    }
+
+    document.getElementById("addRowBtn").addEventListener("click", () => {
+      createRow();
+    });
+    document.getElementById("clearAllBtn").addEventListener("click", () => {
+      itemBody.innerHTML = "";
+      expectedTotalUsdtJson = null;
+      for (const k in jsonDiscountMap) delete jsonDiscountMap[k];
+      recalcAll();
+    });
+    document.getElementById("loadJsonBtn").addEventListener("click", loadFromJson);
+
+    // แถวเริ่มต้นให้ลองกรอก
+    createRow();
+    createRow();
+    createRow();
+  </script>
+</body>
+</html>
