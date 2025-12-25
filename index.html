@@ -217,6 +217,60 @@
       padding-top: 4px;
       font-weight: 600;
     }
+    .calc-details {
+      display: none;
+      margin-top: 16px;
+    }
+    .calc-details h2 {
+      font-size: 15px;
+      margin: 0 0 8px;
+    }
+    .calc-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .calc-table th, .calc-table td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 6px 6px;
+      font-size: 12px;
+      text-align: right;
+      vertical-align: top;
+    }
+    .calc-table th:first-child,
+    .calc-table td:first-child,
+    .calc-table th:nth-child(2),
+    .calc-table td:nth-child(2),
+    .calc-table th:nth-child(3),
+    .calc-table td:nth-child(3) {
+      text-align: left;
+    }
+    .calc-discount-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+    }
+    .calc-total-row td {
+      font-weight: 600;
+      border-top: 1px dashed #d1d5db;
+    }
+    .calc-line {
+      white-space: normal;
+      word-break: break-word;
+      line-height: 1.35;
+      font-size: 11px;
+      display: block;
+    }
+
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      body { padding: 0; background: #fff; }
+      .container { box-shadow: none; border-radius: 0; }
+      .controls, textarea, button, #discountModalBackdrop { display: none !important; }
+      .calc-details { display: block; }
+      table { page-break-inside: auto; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
+    }
 
     @media (max-width: 768px) {
       body { padding: 12px; }
@@ -243,6 +297,7 @@
     <div class="controls">
       <button id="addRowBtn">+ เพิ่มรายการสินค้า</button>
       <button id="clearAllBtn" class="secondary">ล้างข้อมูลทั้งหมด</button>
+      <button id="exportPdfBtn" class="secondary">Export PDF</button>
     </div>
 
     <!-- นำเข้าจาก JSON -->
@@ -325,6 +380,11 @@
           <span id="compareResult">-</span>
         </div>
       </div>
+    </div>
+
+    <div id="calcDetails" class="card calc-details">
+      <h2>Calculation Details (PDF)</h2>
+      <div id="calcDetailsBody" class="text-muted">-</div>
     </div>
   </div>
 
@@ -749,6 +809,102 @@
       }
 
       // --- เทียบยอดกับ JSON ---
+      // --- detailed calculation for PDF ---
+      const calcDetailsBody = document.getElementById("calcDetailsBody");
+      if (calcDetailsBody) {
+        let html = `
+          <table class="calc-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Item</th>
+                <th>Calc</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        rowInfos.forEach(ri => {
+          const tr = ri.tr;
+          const itemText = (tr.querySelector(".item")?.value || "").trim() || "-";
+          const groupText = (tr.querySelector(".group")?.value || "").trim();
+          const qtyStr = (tr.querySelector(".qty")?.value || "").trim() || "0";
+          const priceThb = (tr.querySelector(".priceThb")?.value || "").trim();
+          const priceUsdt = (tr.querySelector(".priceUsdt")?.value || "").trim();
+          const currency = ri.currency || tr.dataset.currency || "";
+          const discountStr = (tr.querySelector(".discounts")?.value || "").trim();
+
+          let unitPrice = "-";
+          if (currency === "THB") unitPrice = priceThb || "0";
+          else if (currency === "USDT") unitPrice = priceUsdt || "0";
+          else unitPrice = priceThb || priceUsdt || "0";
+
+          let baseFormulaText = "";
+          const childList = ri.code ? childrenMap[ri.code] : null;
+          if (childList && childList.length) {
+            const baseLabel = currency === "USDT" ? "sum child net (USDT)" : "sum child net";
+            baseFormulaText = `${baseLabel} = ${decimalToString(ri.base)}`;
+          } else {
+            baseFormulaText = `${qtyStr} x ${unitPrice} = ${decimalToString(ri.base)}`;
+          }
+
+          const calcParts = [`base: ${baseFormulaText}`];
+          if (discountStr) {
+            let current = ri.base;
+            const tokens = discountStr.split(/[,+\s]+/).filter(Boolean);
+            const hundred = parseDecimal("100");
+            tokens.forEach(rawToken => {
+              let label = rawToken.trim();
+              if (!label) return;
+              let token = label;
+              const isPercent = token.includes("%");
+              token = token.replace("%", "");
+              let value = parseDecimal(token);
+              if (value === 0n) return;
+              if (value < 0n) value = -value;
+
+              const sign = current >= 0n ? 1n : -1n;
+              const absCurrent = current >= 0n ? current : -current;
+              let discMag = 0n;
+              if (isPercent) {
+                discMag = divDec(mulDec(absCurrent, value), hundred);
+              } else {
+                discMag = value;
+              }
+              current = sign >= 0n ? subDec(current, discMag) : addDec(current, discMag);
+
+              const op = sign >= 0n ? "-" : "+";
+              calcParts.push(`discount: ${op}${label} = ${decimalToString(discMag)} => ${decimalToString(current)}`);
+            });
+          }
+
+          calcParts.push(`net = ${decimalToString(ri.net)}`);
+
+          const excludeNote = ri.excluded ? `<div class="text-muted">Excluded from totals (child)</div>` : "";
+          const groupNote = groupText ? `<div class="text-muted">${groupText}</div>` : "";
+
+          html += `
+            <tr>
+              <td>${ri.code || "-"}</td>
+              <td>${itemText}${groupNote}${excludeNote}</td>
+              <td><span class="calc-line">${calcParts.join(" | ")}</span></td>
+            </tr>
+          `;
+        });
+
+        html += `
+            </tbody>
+            <tfoot>
+              <tr class="calc-total-row">
+                <td colspan="2">Totals</td>
+                <td>base = ${decimalToString(totalBefore)} | discount = ${decimalToString(totalDiscount)} | net = ${decimalToString(totalNet)} / ${decimalToString(totalNetUsdt)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+        calcDetailsBody.innerHTML = html;
+      }
+
       const jsonTotalEl = document.getElementById("jsonTotalUsdt");
       const compareEl = document.getElementById("compareResult");
       if (jsonTotalEl && compareEl) {
@@ -1039,6 +1195,14 @@
       recalcAll();
     });
     document.getElementById("loadJsonBtn").addEventListener("click", loadFromJson);
+
+    const exportBtn = document.getElementById("exportPdfBtn");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => {
+        hideDiscountModal();
+        window.print();
+      });
+    }
 
     // แถวเริ่มต้นให้ลองกรอก
     createRow();
